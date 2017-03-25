@@ -4,5 +4,30 @@
 }
 
 .xlerate{
-	font-family:sTone;
+	font-family:sTone ;
+}
+
+.slider-caption h2{
+	text-transform: uppercase;
+	font-style: italic;
+	float: right;
+
+}
+
+.leftIns{
+	float:left !important;
+}
+
+.customIns{
+	padding: 0;
+	margin: 0;
+}
+
+.plan p{
+	color: white;
+}
+
+.footerxlerate{
+	border: none;
+	color: black;
 }
