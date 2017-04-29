@@ -1,0 +1,49 @@
+<html>
+
+<head>
+    <title>IoT Bridge </title>
+</head>
+
+<body>
+    <p> The nrf51 has three services now:
+        <ol>
+            <li> one is a default service which is not needed, </li>
+            <li> another one is Nordic UART service, you can use it for decoding, if needed</li>
+            <li> then the last one is our IR service.</li>
+        </ol>
+    </p>
+    <p> The IR service's Base UUID is 000000001212efde1523785fef13d123 and its 16-bit id is 0xFACE, so effectively its UUID is 0000FACE1212efde1523785fef13d123
+        <br> All the characteristics of the service will have UUID of the form 0000xxxx1212efde1523785fef13d123
+        <br> Three characteristics are there in the IR service, each of them are:
+        <br>
+        <ol>
+            <li> IR decode characteristic: UUID 0xCAFE. Read (Phone reads data from this characteristic as notification)</li>
+            <li> IR transmission characteristic: UUID 0xF00D Write (Phone writes to this characteristic, the data which has to sent using IR)</li>
+            <li> IR start decode characteristic: UUID 0xDEAD Write (Phone writes to this)</li>
+        </ol>
+    </p>
+    <h2>IR Decoding/Learning</h2>
+    <p> So in order to start decoding or learning new signal, first write some random 8bit value to the IR_START_DECODE_CHARACTERISTIC. This will make the nrf listen to the TSOP output which is connected to the pin P04. The TSOP output is low for logic 1 and high for logic 0, so you can generate data by plugging a wire on the P04 pin and just touching the GROUND pin( near the USB port, between 3v3 and 5v pins). All the decoded data and other debug outputs will be sent through the USB to the PC using UART which can be read by software like Termite. Once the signal variation on TSOP ceases for around 1sec(it should be 20ms in finished project), the nrf will sent the decoded data as notification via the IR_DECODE_CHARACTERISTIC as chunks of 20bytes. The data is stored as an array of 16bits, with first data in the array as length of the decoded data(The length denotes the length of the decoded data only and so the total size of the array would be length+1). The data will be sent with least significant byte (LSB) first and then MSB - ie little endian. So the first two bytes in the decoded data will give the length of the array(again  actual size of array is length+1) in 16bits(you'll have to double the length to get the number of bytes). In order to receive notification from the IR_DECODE_CHARACTERISTIC, notifications for that characteristic should be enabled in the android device. </p>
+    <p> Similarly for IR transmission, make an array of 16bit unsigned integers. The first element in the array should be the length of the data in the array(actual size of array - 1), and then the values. Actually the value is a pair of ON and OFF time for the IR light in microseconds.
+        <br> For example the array {0x0004, 525, 1600, 700, 1300} means that length of the data is 4 words. The IR emitter should stay ON for 525us(microseconds) and OFF for 1600us and again ON for 700us and OFF for 1300us. </p>
+    <p>*<b>Current IR LED is assumed to be the LED3 on the DK</b></p>
+    <p> You can use nrfConnect from Google Play to test the nrf51.
+        <br> To test try this in the app,
+        <ol>
+            <li>Connect to the device and turn on notification for IR_DECODE_CHARACTERISTIC ( UUID 0xCAFE )</li>
+            <li>Send some random byte to the IR_START_DECODE_CHARACTERISTIC (UUID 0xDEAD)</li>
+            <li>Then try contacting the wire from P04 to ground(data will get generated, and the generated data can be seen in Termite)</li>
+            <li>After ~1sec of no change in data, decoding ends, and the decoded data will be sent to the app as notification of 20bytes, you can see the received data in the log of nrfConnect.</li>
+        </ol>
+    </p>
+    <h2>IR transmission</h2>
+    <p>Similary for transmission write a byte array as 20byte chunks to the IR_TRANSMISSION_CHARACTERISTIC ( UUID 0x0DEAD ), after receiving all the chunks of the array, IR emission will start, and the LED3 will be blink for small time.(Format of array is same as in decoding. 16bit little endian array with first element representing the length of the data in the array</p>
+    <p> Example data: 1st chunk 0900FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF<br>
+     2nd chunk 3412 <br><br>
+     If no the succeeding chunk of data is not received in 5seconds a timeout will occur and all the received data will be discarded.</p>
+    <p>The max size of decode array is 1000 words(2000bytes) and same for transmission</p>
+    <p>Termite settings:
+        <br> <img src="termite.png"></p>
+</body>
+
+</html>
